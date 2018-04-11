@@ -72,13 +72,13 @@ $(document).ready(function () {
         var text = address
         if (text !== "") {
             insertChat("you", text);
-            url = "https://nominatim.openstreetmap.org/search/"+text+"?format=json&addressdetails=1&limit=1"
+            url = "https://nominatim.openstreetmap.org/search/" + text + "?format=json&addressdetails=1&limit=1"
             $.ajax({
                 url: url,
                 type: 'GET',
                 dataType: 'json',
                 success: function (data) {
-                    if(data == ""){
+                    if (data == "") {
                         insertChat("me", "Sorry I can't find the address you are searching for, lets try again.", 100);
                         return;
                     }
@@ -93,46 +93,24 @@ $(document).ready(function () {
                         lat: lon,
                         lon: lat,
                         success: function (data) {
-                            console.log(data)
+                            if (data.features.length == 0){
+                                insertChat("me", "Oops, I cannot find the state you are in.", 1500);
+                                return;
+                            }
                             var state = data.features[0].properties.STATE_NAME;
                             insertChat("me", "You are currently in the state of " + state + ".", 1500);
-                            $('#chat').animate({
-                                scrollTop: $('#chat').prop("scrollHeight")
-                            }, 500);
-                            var line = turf.polygonToLine(data.features[0]);
-                            var pt = turf.point([this.lon, this.lat]);
-                            var snapped = turf.nearestPointOnLine(line.features[0], pt, {
-                                units: 'miles'
-                            });
-                            var distanceToBorder = snapped.properties.dist.toLocaleString();
-                            insertChat("me", "The closest state is " + distanceToBorder + " miles away.", 2500);
-                            var closest_url = "https://demo.boundlessgeo.com/geoserver/wfs?service=WFS&request=GetFeature&version=1.0.0&typeName=topp:states&outputFormat=application/json&CQL_FILTER=DWITHIN(the_geom,Point(" + snapped.geometry.coordinates[0] + " " + snapped.geometry.coordinates[1] + "),.0002,kilometers)"
-                            $.ajax({
-                                url: closest_url,
-                                type: 'GET',
-                                current_state_id: data.features[0].id,
-                                dataType: 'json',
-                                async: false,
-                                success: function (data) {
-                                    for (i in data.features) {
-                                        var state_id = data.features[i].id;
-                                        if (state_id == this.current_state_id) {
-
-                                        } else {
-
-                                            var closestState = data.features[i].properties.STATE_NAME;
-                                            insertChat("me", "The closest state to you is the state of " + closestState + ".", 4500);
-
-                                        }
-                                    }
-                                }
-                            });
+                        },
+                        error: function () {
+                            insertChat("me", "Sorry I can't locate what state you are in right now.", 100);
+                            return;
                         }
                     });
+                },
+                error: function () {
+                    insertChat("me", "Sorry I can't search for address right now, lets try again.", 100);
+                    return;
                 }
-
             });
-
         }
     };
 });
